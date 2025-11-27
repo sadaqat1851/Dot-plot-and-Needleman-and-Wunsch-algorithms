@@ -47,7 +47,11 @@ public class NeedlemanWunsch {
         int i = seq1.length();
         int j = seq2.length();
 
+        java.util.List<int[]> path = new java.util.ArrayList<>();
+
         while (i > 0 || j > 0) {
+            // record this coordinate as part of the path (matrix indices)
+            path.add(new int[]{i, j});
             if (i > 0 && j > 0) {
                 int scoreHere = matrix[i][j];
                 int diag = matrix[i - 1][j - 1];
@@ -89,11 +93,17 @@ public class NeedlemanWunsch {
             }
         }
 
+        // add the final origin cell (0,0) to the path
+        path.add(new int[]{0, 0});
+
         String aligned1 = a1.reverse().toString();
         String aligned2 = a2.reverse().toString();
         int score = matrix[seq1.length()][seq2.length()];
 
-        return new AlignmentResult(aligned1, aligned2, score, matrix);
+        // reverse path so coordinates are from origin->end
+        java.util.Collections.reverse(path);
+
+        return new AlignmentResult(aligned1, aligned2, score, matrix, path);
     }
 
     /**
@@ -104,12 +114,14 @@ public class NeedlemanWunsch {
         public final String alignedSeq2;
         public final int score;
         public final int[][] matrix;
+        public final java.util.List<int[]> tracebackPath;
 
-        public AlignmentResult(String a1, String a2, int score, int[][] matrix) {
+        public AlignmentResult(String a1, String a2, int score, int[][] matrix, java.util.List<int[]> tracebackPath) {
             this.alignedSeq1 = a1;
             this.alignedSeq2 = a2;
             this.score = score;
             this.matrix = matrix;
+            this.tracebackPath = tracebackPath;
         }
     }
 

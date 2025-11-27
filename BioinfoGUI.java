@@ -271,6 +271,111 @@ public class BioinfoGUI extends JFrame {
         lastAlignment = res;
         lastSeq1 = s1;
         lastSeq2 = s2;
+
+        // also show DP matrix visually in the top area (matrix with highlighted traceback)
+        displayVisualMatrix(res);
+    }
+
+    private void displayVisualMatrix(NeedlemanWunsch.AlignmentResult res) {
+        if (res == null || res.matrix == null) return;
+
+        Container root = getContentPane();
+        JTabbedPane tp = null;
+        for (Component c : root.getComponents()) if (c instanceof JTabbedPane) tp = (JTabbedPane) c;
+        if (tp == null) return;
+
+        JPanel visualPanel = (JPanel) tp.getComponentAt(0);
+        JSplitPane split = null;
+        for (Component c : visualPanel.getComponents()) if (c instanceof JSplitPane) split = (JSplitPane) c;
+        if (split == null) return;
+
+        JPanel dotPlotContainer = (JPanel) split.getTopComponent();
+        // remove existing (dot plot or previous matrix)
+        if (currentDotPanel != null) dotPlotContainer.remove(currentDotPanel);
+
+        int[][] matrix = res.matrix;
+        int rows = matrix.length;
+        int cols = matrix[0].length;
+
+        // build a grid with row header + matrix
+        JPanel grid = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+
+        // top-left empty
+        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0; gbc.weighty = 0;
+        grid.add(new JLabel(""), gbc);
+
+        // top header (seq2, include '-' for j=0)
+        for (int j = 0; j < cols; j++) {
+            gbc.gridx = j + 1; gbc.gridy = 0; gbc.weightx = 1; gbc.weighty = 0;
+            JLabel h;
+            if (j == 0) h = new JLabel("-", SwingConstants.CENTER);
+            else h = new JLabel(String.valueOf(lastSeq2.charAt(j - 1)), SwingConstants.CENTER);
+            h.setBorder(BorderFactory.createLineBorder(Color.lightGray));
+            h.setOpaque(true);
+            h.setBackground(new Color(240,240,240));
+            grid.add(h, gbc);
+        }
+
+        // matrix cells with left header
+        java.util.Set<String> pathSet = new java.util.HashSet<>();
+        if (res.tracebackPath != null) {
+            for (int[] coord : res.tracebackPath) pathSet.add(coord[0] + "," + coord[1]);
+        }
+
+        for (int i = 0; i < rows; i++) {
+            // left header
+            gbc.gridx = 0; gbc.gridy = i + 1; gbc.weightx = 0;
+            JLabel leftH;
+            if (i == 0) leftH = new JLabel("-", SwingConstants.CENTER);
+            else leftH = new JLabel(String.valueOf(lastSeq1.charAt(i - 1)), SwingConstants.CENTER);
+            leftH.setBorder(BorderFactory.createLineBorder(Color.lightGray));
+            leftH.setOpaque(true);
+            leftH.setBackground(new Color(240,240,240));
+            grid.add(leftH, gbc);
+
+            for (int j = 0; j < cols; j++) {
+                gbc.gridx = j + 1; gbc.gridy = i + 1; gbc.weightx = 1; gbc.weighty = 1;
+                int value = matrix[i][j];
+                JLabel cell = new JLabel(String.valueOf(value), SwingConstants.CENTER);
+                cell.setOpaque(true);
+
+                // color mapping (simple): positive -> greenish; zero -> white; negative -> light red
+                if (pathSet.contains(i + "," + j)) {
+                    // highlight path specially
+                    cell.setBackground(new Color(255, 229, 153)); // pale yellow
+                    cell.setBorder(BorderFactory.createLineBorder(new Color(255,140,0), 2));
+                } else if (value > 0) {
+                    cell.setBackground(new Color(200, 255, 200));
+                } else if (value == 0) {
+                    cell.setBackground(new Color(245, 245, 245));
+                } else {
+                    cell.setBackground(new Color(255,220,220));
+                }
+                cell.setBorder(BorderFactory.createLineBorder(new Color(220,220,220)));
+                cell.setFont(cell.getFont().deriveFont(Font.PLAIN, 12f));
+
+                // tooltip with coordinates
+                cell.setToolTipText(String.format("(%d,%d) = %d", i, j, value));
+                grid.add(cell, gbc);
+            }
+        }
+
+        currentDotPanel = new JPanel(new BorderLayout());
+        currentDotPanel.add(new JScrollPane(grid), BorderLayout.CENTER);
+
+        // legend
+        JPanel legend = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        legend.add(createLegendDot("Traceback path", new Color(255,229,153)));
+        legend.add(createLegendDot("Positive score", new Color(200,255,200)));
+        legend.add(createLegendDot("Zero", new Color(245,245,245)));
+        legend.add(createLegendDot("Negative score", new Color(255,220,220)));
+        currentDotPanel.add(legend, BorderLayout.SOUTH);
+
+        dotPlotContainer.add(currentDotPanel, BorderLayout.CENTER);
+        dotPlotContainer.revalidate();
+        dotPlotContainer.repaint();
     }
 
     private NeedlemanWunsch.AlignmentResult lastAlignment = null;
