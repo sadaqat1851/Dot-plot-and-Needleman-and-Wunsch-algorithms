@@ -33,4 +33,23 @@ public class DotPlot {
             System.out.println();
         }
     }
+
+    /**
+     * Build a string representation of the dot-plot for GUI display
+     */
+    public String dotPlotToString(char[][] grid) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("      ");
+        for (int j = 0; j < seq2.length(); j++)
+            sb.append(String.format("%2c", seq2.charAt(j)));
+        sb.append('\n');
+
+        for (int i = 0; i < seq1.length(); i++) {
+            sb.append(String.format("%2c | ", seq1.charAt(i)));
+            for (int j = 0; j < seq2.length(); j++)
+                sb.append(String.format("%2c", grid[i][j]));
+            sb.append('\n');
+        }
+        return sb.toString();
+    }
 }
