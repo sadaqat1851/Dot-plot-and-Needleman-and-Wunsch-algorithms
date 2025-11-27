@@ -296,51 +296,80 @@ public class BioinfoGUI extends JFrame {
         String a1 = lastAlignment.alignedSeq1;
         String a2 = lastAlignment.alignedSeq2;
 
-        JPanel p = new JPanel();
-        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        // Build a clean 3-row grid (top sequence, symbol row, bottom sequence) so each aligned column
+        // is a consistent cell. This looks like the dot-plot visual but in alignment form.
+        int cols = a1.length();
+        JPanel grid = new JPanel(new GridLayout(3, cols, 2, 2));
+        grid.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
 
-        JPanel topRow = new JPanel();
-        JPanel midRow = new JPanel();
-        JPanel botRow = new JPanel();
+        // Build the three rows as arrays then add them row-by-row so columns align
+        JLabel[] topLabels = new JLabel[cols];
+        JLabel[] midLabels = new JLabel[cols];
+        JLabel[] botLabels = new JLabel[cols];
 
-        topRow.setLayout(new FlowLayout(FlowLayout.LEFT, 2, 2));
-        midRow.setLayout(new FlowLayout(FlowLayout.LEFT, 2, 2));
-        botRow.setLayout(new FlowLayout(FlowLayout.LEFT, 2, 2));
-
-        for (int k = 0; k < a1.length(); k++) {
+        for (int k = 0; k < cols; k++) {
             char c1 = a1.charAt(k);
             char c2 = a2.charAt(k);
 
-            Color bg;
-            if (c1 == '-' || c2 == '-') bg = new Color(220, 220, 220); // gap
-            else if (c1 == c2) bg = new Color(72, 179, 92); // match
-            else bg = new Color(244, 156, 66); // mismatch orange
+            String midSymbol;
+            if (c1 == '-' || c2 == '-') {
+                midSymbol = "-";
+            } else if (c1 == c2) {
+                midSymbol = "|";
+            } else {
+                midSymbol = ":";
+            }
 
-            JLabel topLabel = new JLabel(String.valueOf(c1));
-            topLabel.setOpaque(true);
-            topLabel.setBackground(bg);
-            topLabel.setForeground(Color.white);
-            topLabel.setBorder(BorderFactory.createLineBorder(Color.gray));
-            topLabel.setPreferredSize(new Dimension(18, 18));
+            JLabel topLabel = new JLabel(String.valueOf(c1), SwingConstants.CENTER);
+            topLabel.setToolTipText("Top: " + c1 + " at col " + (k + 1));
 
-            JLabel midLabel = new JLabel(" ");
-            midLabel.setPreferredSize(new Dimension(18, 6));
+            JLabel midLabel = new JLabel(midSymbol, SwingConstants.CENTER);
+            midLabel.setToolTipText("Relation: " + (midSymbol.equals("|")?"match": midSymbol.equals(":")?"mismatch":"gap"));
 
-            JLabel botLabel = new JLabel(String.valueOf(c2));
-            botLabel.setOpaque(true);
-            botLabel.setBackground(bg);
-            botLabel.setForeground(Color.white);
-            botLabel.setBorder(BorderFactory.createLineBorder(Color.gray));
-            botLabel.setPreferredSize(new Dimension(18, 18));
+            JLabel botLabel = new JLabel(String.valueOf(c2), SwingConstants.CENTER);
+            botLabel.setToolTipText("Bottom: " + c2 + " at col " + (k + 1));
 
-            topRow.add(topLabel);
-            midRow.add(midLabel);
-            botRow.add(botLabel);
+            topLabels[k] = topLabel;
+            midLabels[k] = midLabel;
+            botLabels[k] = botLabel;
         }
 
-        p.add(topRow);
-        p.add(midRow);
-        p.add(botRow);
+        // add top row cells
+        for (int k = 0; k < cols; k++) {
+            Color bg;
+            char c1 = a1.charAt(k);
+            char c2 = a2.charAt(k);
+            if (c1 == '-' || c2 == '-') bg = new Color(200,200,200);
+            else if (c1 == c2) bg = new Color(72,179,92);
+            else bg = new Color(244,156,66);
+            styleAlignmentCell(topLabels[k], bg);
+            grid.add(topLabels[k]);
+        }
+
+        // add middle row
+        for (int k = 0; k < cols; k++) {
+            JLabel mid = midLabels[k];
+            mid.setOpaque(true);
+            mid.setBackground(new Color(245,245,245));
+            mid.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
+            mid.setPreferredSize(new Dimension(20, 18));
+            grid.add(mid);
+        }
+
+        // add bottom row
+        for (int k = 0; k < cols; k++) {
+            Color bg;
+            char c1 = a1.charAt(k);
+            char c2 = a2.charAt(k);
+            if (c1 == '-' || c2 == '-') bg = new Color(200,200,200);
+            else if (c1 == c2) bg = new Color(72,179,92);
+            else bg = new Color(244,156,66);
+            styleAlignmentCell(botLabels[k], bg);
+            grid.add(botLabels[k]);
+        }
+
+        JPanel p = new JPanel(new BorderLayout());
+        p.add(grid, BorderLayout.CENTER);
 
         // score display
         JLabel scoreLab = new JLabel("Score: " + lastAlignment.score);
@@ -353,6 +382,15 @@ public class BioinfoGUI extends JFrame {
         alignCenter.add(currentAlignPanel, BorderLayout.CENTER);
         alignCenter.revalidate();
         alignCenter.repaint();
+    }
+
+    private void styleAlignmentCell(JLabel lbl, Color bg) {
+        lbl.setOpaque(true);
+        lbl.setBackground(bg);
+        lbl.setForeground(Color.white);
+        lbl.setBorder(BorderFactory.createLineBorder(Color.gray));
+        lbl.setPreferredSize(new Dimension(24, 24));
+        lbl.setFont(lbl.getFont().deriveFont(Font.BOLD, 12f));
     }
 
     public static void createAndShow() {
